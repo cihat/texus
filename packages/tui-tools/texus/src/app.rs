@@ -23,7 +23,7 @@ pub struct App {
   last_tick_key_events: Vec<KeyEvent>,
   action_tx: mpsc::UnboundedSender<Action>,
   action_rx: mpsc::UnboundedReceiver<Action>,
-  }
+}
 
 #[derive(Default, Debug, Copy, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum Mode {
