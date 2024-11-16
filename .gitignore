@@ -1,0 +1,6 @@
+/target
+.data/*.log
+/*_DATA/*.log
+/TEXUS_DATA/*.log
+/data/*.log
+.env
