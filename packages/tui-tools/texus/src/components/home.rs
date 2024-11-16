@@ -1,9 +1,9 @@
 use color_eyre::Result;
 
 use ratatui::{
+  crossterm::event::{KeyCode, KeyEvent},
   prelude::*,
-  widgets::{Block, Borders, List, ListItem},
-  crossterm::event::{KeyEvent, KeyCode}
+  widgets::{block::title, Block, Borders, List, ListItem, Padding, Scrollbar, ScrollbarState},
 };
 use tokio::sync::mpsc::UnboundedSender;
 
@@ -61,7 +61,7 @@ impl Component for Home {
     Ok(None)
   }
 
-    fn handle_key_event(&mut self, key: KeyEvent) -> Result<Option<Action>> {
+  fn handle_key_event(&mut self, key: KeyEvent) -> Result<Option<Action>> {
     match key {
       KeyEvent {
         code: KeyCode::Char('j') | KeyCode::Down,
@@ -80,11 +80,7 @@ impl Component for Home {
         }
       }
       KeyEvent {
-        code:
-          KeyCode::Enter
-          | KeyCode::Char(' ')
-          | KeyCode::Right
-          | KeyCode::Char('l'),
+        code: KeyCode::Enter | KeyCode::Char(' ') | KeyCode::Right | KeyCode::Char('l'),
         ..
       } => {
         self.selected_project = self.projects.get(self.selected_project_index).cloned();
@@ -96,27 +92,29 @@ impl Component for Home {
     Ok(None)
   }
 
-  fn draw(&mut self, frame: &mut Frame, _area: Rect) -> Result<()> {
-    let chunks = Layout::horizontal([
-      Constraint::Percentage(30), // Left Side (%30)
-      Constraint::Percentage(70), // Right Side (%70)
-    ])
-    .split(frame.area());
+  fn draw(&mut self, frame: &mut Frame, area: Rect) -> Result<()> {
+    let rects = Layout::default()
+      .direction(Direction::Horizontal)
+      .constraints([Constraint::Percentage(30), Constraint::Percentage(70)].as_ref())
+      .split(area);
 
-    // let selected_project = self.projects.get(selected_index);
-    let selected_project = self.projects.get(self.selected_project_index).unwrap();
+    let list_height = rects[0].height as usize - 2; // Adjust for padding and borders
+    let start = self.selected_project_index.saturating_sub(list_height / 2);
+    let end = (start + list_height).min(self.projects.len());
+    let visible_projects = &self.projects[start..end];
 
-    let project_items: Vec<ListItem> = self
-      .projects
+    let project_items: Vec<ListItem> = visible_projects
       .iter()
       .enumerate()
       .map(|(i, p)| {
+        let global_index = start + i;
         let mut item = ListItem::new(p.name.clone());
-        if i == self.selected_project_index {
+        if global_index == self.selected_project_index {
           item = item.style(
             Style::default()
-              .fg(Color::Yellow)
-              .add_modifier(Modifier::BOLD),
+              .fg(Color::Blue)
+              .add_modifier(Modifier::BOLD)
+              .add_modifier(Modifier::REVERSED),
           );
         }
         item
@@ -124,18 +122,38 @@ impl Component for Home {
       .collect();
 
     let project_list = List::new(project_items)
-      .block(Block::default().title("Projects").borders(Borders::ALL))
+      .block(
+        Block::default()
+          .title(Line::from("Projects").left_aligned())
+          .title(Line::from("Middle Title").centered())
+          .title(Line::from("Right Title").right_aligned())
+          .title_bottom(Line::from("Search: /").left_aligned())
+          .padding(Padding::proportional(1))
+          .borders(Borders::ALL),
+      )
       .highlight_style(Style::default().add_modifier(Modifier::BOLD));
 
-    frame.render_widget(project_list, chunks[0]);
-
+    let selected_project = self.projects.get(self.selected_project_index).unwrap();
     let details_text = serde_json::to_string_pretty(&selected_project).unwrap();
-
     let project_details = Paragraph::new(details_text)
-      .block(Block::default().title("Details").borders(Borders::ALL))
+      .block(
+        Block::default()
+          .title("Details")
+          .style(style::Style::default().fg(Color::Black)) 
+          .borders(Borders::ALL)
+          .title_bottom(Line::from("Start: s").left_aligned().style(style::Style::default().fg(Color::Green))) 
+          .title_bottom(Line::from("Stop: S").centered().style(Style::default().fg(Color::Red)))
+          .title_bottom(Line::from("Build: b").right_aligned().style(style::Style::default().fg(Color::Blue))),
+      )
       .wrap(Wrap { trim: false });
 
-    frame.render_widget(project_details, chunks[1]);
+    let scrollbar = Scrollbar::default().style(Style::default().fg(Color::Green));
+    let mut scrollbar_state =
+      ScrollbarState::new(self.projects.len()).position(self.selected_project_index);
+
+    frame.render_widget(project_list, rects[0]);
+    frame.render_widget(project_details, rects[1]);
+    frame.render_stateful_widget(scrollbar, rects[0], &mut scrollbar_state);
 
     Ok(())
   }
