@@ -9,7 +9,7 @@ pub struct ProjectStatus;
 
 impl ProjectStatus {
   pub fn draw(state: &AppState, frame: &mut Frame, area: Rect) {
-    if let Some(project) = state.selected_project() {
+    if let Some(project) = state.get_selected_project() {
       let project_status = Paragraph::new(format!("Status: {}", project.status))
         .block(Block::default().title("Status").borders(Borders::ALL))
         .wrap(Wrap { trim: false });

@@ -19,6 +19,4 @@ pub enum Action {
   ClearScreen,
   Error(String),
   Help,
-  ProjectSelect(usize),
-  ProjectAction(ProjectAction),
 }

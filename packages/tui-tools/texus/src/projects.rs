@@ -7,8 +7,8 @@ use strum::Display;
 pub enum ProjectStatus {
   #[default]
   Running,
-  Stopped,
-  Building,
+  // Killing,
+  // Building,
 }
 
 #[derive(Default, Serialize, PartialEq, Eq, Clone)]
@@ -35,7 +35,7 @@ impl Project {
       ..Default::default()
     }
   }
-  fn start(&mut self) {
+  fn _start(&mut self) {
     self.status = ProjectStatus::Running;
   }
 }
