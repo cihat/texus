@@ -1,11 +1,12 @@
 use std::fs;
 
 use serde::Serialize;
+use strum::Display;
 
-#[derive(Default, Serialize, PartialEq, Eq, Clone)]
-enum ProjectStatus {
-  Running,
+#[derive(Default, Serialize, PartialEq, Eq, Clone, Display)]
+pub enum ProjectStatus {
   #[default]
+  Running,
   Stopped,
   Building,
 }
@@ -33,6 +34,9 @@ impl Project {
       commands,
       ..Default::default()
     }
+  }
+  fn start(&mut self) {
+    self.status = ProjectStatus::Running;
   }
 }
 

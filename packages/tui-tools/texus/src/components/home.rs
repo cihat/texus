@@ -3,13 +3,15 @@ use color_eyre::Result;
 use ratatui::{
   crossterm::event::{KeyCode, KeyEvent},
   prelude::*,
-  widgets::{block::title, Block, Borders, List, ListItem, Padding, Scrollbar, ScrollbarState},
+  widgets::{
+    Block, Borders, List, ListItem, Padding, Scrollbar, ScrollbarState
+  },
 };
 use tokio::sync::mpsc::UnboundedSender;
 
 use super::Component;
 use crate::{
-  action::{Action, ProjectAction},
+  action::Action,
   config::Config,
   projects::{get_projects, Project},
 };
@@ -95,7 +97,14 @@ impl Component for Home {
   fn draw(&mut self, frame: &mut Frame, area: Rect) -> Result<()> {
     let rects = Layout::default()
       .direction(Direction::Horizontal)
-      .constraints([Constraint::Percentage(30), Constraint::Percentage(70)].as_ref())
+      .constraints(
+        [
+          Constraint::Percentage(25),
+          Constraint::Percentage(40),
+          Constraint::Percentage(35),
+        ]
+        .as_ref(),
+      )
       .split(area);
 
     let list_height = rects[0].height as usize - 2; // Adjust for padding and borders
@@ -127,7 +136,7 @@ impl Component for Home {
           .title(Line::from("Projects").left_aligned())
           .title(Line::from("Middle Title").centered())
           .title(Line::from("Right Title").right_aligned())
-          .title_bottom(Line::from("Search: /").left_aligned())
+          .title_bottom(Line::from("Search: /").left_aligned().bold())
           .padding(Padding::proportional(1))
           .borders(Borders::ALL),
       )
@@ -139,11 +148,35 @@ impl Component for Home {
       .block(
         Block::default()
           .title("Details")
-          .style(style::Style::default().fg(Color::Black)) 
+          .style(style::Style::default().fg(Color::Black))
           .borders(Borders::ALL)
-          .title_bottom(Line::from("Start: s").left_aligned().style(style::Style::default().fg(Color::Green))) 
-          .title_bottom(Line::from("Stop: S").centered().style(Style::default().fg(Color::Red)))
-          .title_bottom(Line::from("Build: b").right_aligned().style(style::Style::default().fg(Color::Blue))),
+          .title_bottom(
+            Line::from("Start: s")
+              .left_aligned()
+              .bold()
+              .style(style::Style::default().fg(Color::Green)),
+          )
+          .title_bottom(
+            Line::from("Stop: S")
+              .centered()
+              .bold()
+              .style(Style::default().fg(Color::Red)),
+          )
+          .title_bottom(
+            Line::from("Build: b")
+              .right_aligned()
+              .bold()
+              .style(style::Style::default().fg(Color::Blue)),
+          ),
+      )
+      .wrap(Wrap { trim: false });
+
+    let project_status = Paragraph::new(format!("Status: {}", selected_project.status))
+      .block(
+        Block::default()
+          .title("Status")
+          .style(style::Style::default().fg(Color::Black))
+          .borders(Borders::ALL),
       )
       .wrap(Wrap { trim: false });
 
@@ -153,6 +186,7 @@ impl Component for Home {
 
     frame.render_widget(project_list, rects[0]);
     frame.render_widget(project_details, rects[1]);
+    frame.render_widget(project_status,rects[2]);
     frame.render_stateful_widget(scrollbar, rects[0], &mut scrollbar_state);
 
     Ok(())
