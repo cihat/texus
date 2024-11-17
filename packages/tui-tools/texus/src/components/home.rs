@@ -1,5 +1,5 @@
-use std::path::PathBuf;
 use color_eyre::Result;
+use std::path::PathBuf;
 
 use ratatui::{
   crossterm::event::{KeyCode, KeyEvent},
@@ -26,7 +26,7 @@ pub enum Mode {
   Search,
 }
 
-#[derive(Default, PartialEq)]
+#[derive(Default, PartialEq, Clone)]
 pub enum ActiveComponent {
   #[default]
   ProjectList,
@@ -47,15 +47,19 @@ pub struct AppState {
 }
 
 impl AppState {
-  pub fn get_selected_project(&self) -> Option<&Project> {
-    self.filtered_projects.get(self.selected_project_index)
+  pub fn get_selected_project(&self) -> Project {
+    self
+      .filtered_projects
+      .get(self.selected_project_index)
+      .cloned()
+      .unwrap_or_default()
   }
 
   pub fn update_filtered_projects(&mut self) {
-    if self.search_query.is_empty() {
-      self.filtered_projects = self.projects.clone();
+    self.filtered_projects = if self.search_query.is_empty() {
+      self.projects.clone()
     } else {
-      self.filtered_projects = self
+      self
         .projects
         .iter()
         .filter(|p| {
@@ -64,9 +68,38 @@ impl AppState {
             .contains(&self.search_query.to_lowercase())
         })
         .cloned()
-        .collect();
-    }
+        .collect()
+    };
     self.selected_project_index = 0;
+  }
+
+  pub fn navigate(&mut self, direction: i32) {
+    match self.active_component {
+      ActiveComponent::ProjectList => {
+        let len = self.filtered_projects.len();
+        if direction > 0 && self.selected_project_index < len - 1 {
+          self.selected_project_index += 1;
+        } else if direction < 0 && self.selected_project_index > 0 {
+          self.selected_project_index -= 1;
+        }
+      }
+      ActiveComponent::ProjectDetail => {
+        self.detail_scroll = (self.detail_scroll as i32 + direction).max(0) as usize;
+      }
+      _ => {}
+    }
+  }
+
+  pub fn switch_active_component(&mut self, next: bool) {
+    self.active_component = match (self.active_component.clone(), next) {
+      (ActiveComponent::ProjectList, true) => ActiveComponent::ProjectDetail,
+      (ActiveComponent::ProjectDetail, true) => ActiveComponent::ProjectStatus,
+      (ActiveComponent::ProjectStatus, true) => ActiveComponent::ProjectList,
+      (ActiveComponent::ProjectList, false) => ActiveComponent::ProjectStatus,
+      (ActiveComponent::ProjectDetail, false) => ActiveComponent::ProjectList,
+      (ActiveComponent::ProjectStatus, false) => ActiveComponent::ProjectDetail,
+    };
+    self.detail_scroll = 0;
   }
 
   pub fn toggle_search_mode(&mut self) {
@@ -85,21 +118,33 @@ pub struct Home {
 
 impl Home {
   pub fn new() -> Self {
-    let project_manager = ProjectManager::new(PathBuf::from(
-      "/Users/cihatsalik/www/frontend/packages/apps",
-    ));
-    let projects = project_manager.get_projects();
-    let filtered_projects = projects.clone();
-
+    let mut state = AppState::default();
+    state.projects = Self::initialize_projects();
+    state.filtered_projects = state.projects.clone();
     Self {
-      state: AppState {
-        projects,
-        filtered_projects,
-        ..Default::default()
-      },
+      state,
       command_tx: None,
       config: Default::default(),
     }
+  }
+
+  fn initialize_projects() -> Vec<Project> {
+    // let project_manager = ProjectManager::new(PathBuf::from(
+    //   "/Users/cihatsalik/www/frontend/packages/apps",
+    // ));
+    let project_manager = ProjectManager::default();
+    project_manager.get_projects()
+  }
+
+  fn create_block(title: &str, active: bool) -> Block {
+    Block::default()
+      .borders(Borders::ALL)
+      .style(if active {
+        Style::default().fg(Color::Rgb(126, 193, 14))
+      } else {
+        Style::default().fg(Color::White)
+      })
+      .title(title)
   }
 }
 
@@ -116,8 +161,8 @@ impl Component for Home {
 
   fn update(&mut self, action: Action) -> Result<Option<Action>> {
     match action {
-      Action::Tick => { /* Handle tick */ }
-      Action::Render => { /* Handle render */ }
+      Action::Tick => { /* Handle periodic updates */ }
+      Action::Render => { /* Handle rendering logic */ }
       _ => {}
     }
     Ok(None)
@@ -126,49 +171,11 @@ impl Component for Home {
   fn handle_key_event(&mut self, key: KeyEvent) -> Result<Option<Action>> {
     match self.state.mode {
       Mode::Normal => match key.code {
-        KeyCode::Char('/') => {
-          self.state.toggle_search_mode();
-        }
-        KeyCode::Char('j') | KeyCode::Down => match self.state.active_component {
-          ActiveComponent::ProjectList => {
-            if self.state.selected_project_index < self.state.filtered_projects.len() - 1 {
-              self.state.selected_project_index += 1;
-            }
-          }
-          ActiveComponent::ProjectDetail => {
-            self.state.detail_scroll += 1;
-          }
-          _ => {}
-        },
-        KeyCode::Char('k') | KeyCode::Up => match self.state.active_component {
-          ActiveComponent::ProjectList => {
-            if self.state.selected_project_index > 0 {
-              self.state.selected_project_index -= 1;
-            }
-          }
-          ActiveComponent::ProjectDetail => {
-            if self.state.detail_scroll > 0 {
-              self.state.detail_scroll -= 1;
-            }
-          }
-          _ => {}
-        },
-        KeyCode::Right | KeyCode::Char('l') => {
-          self.state.active_component = match self.state.active_component {
-            ActiveComponent::ProjectList => ActiveComponent::ProjectDetail,
-            ActiveComponent::ProjectDetail => ActiveComponent::ProjectStatus,
-            ActiveComponent::ProjectStatus => ActiveComponent::ProjectList,
-          };
-          self.state.detail_scroll = 0;
-        }
-        KeyCode::Left | KeyCode::Char('h') => {
-          self.state.active_component = match self.state.active_component {
-            ActiveComponent::ProjectList => ActiveComponent::ProjectStatus,
-            ActiveComponent::ProjectDetail => ActiveComponent::ProjectList,
-            ActiveComponent::ProjectStatus => ActiveComponent::ProjectDetail,
-          };
-          self.state.detail_scroll = 0;
-        }
+        KeyCode::Char('/') => self.state.toggle_search_mode(),
+        KeyCode::Char('j') | KeyCode::Down => self.state.navigate(1),
+        KeyCode::Char('k') | KeyCode::Up => self.state.navigate(-1),
+        KeyCode::Char('l') | KeyCode::Right => self.state.switch_active_component(true),
+        KeyCode::Char('h') | KeyCode::Left => self.state.switch_active_component(false),
         _ => {}
       },
       Mode::Search => match key.code {
@@ -188,8 +195,7 @@ impl Component for Home {
   }
 
   fn draw(&mut self, frame: &mut Frame, area: Rect) -> Result<()> {
-    if !self.state.logo.is_rendered && self.state.projects.len() > 0 {
-      let area = frame.area();
+    if !self.state.logo.is_rendered && !self.state.projects.is_empty() {
       let (logo_width, logo_height) = self.state.logo.get_size();
       if logo_width < area.width && logo_height < area.height {
         frame.render_widget(

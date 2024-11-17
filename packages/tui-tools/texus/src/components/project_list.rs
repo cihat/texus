@@ -52,7 +52,7 @@ impl ProjectList {
       )
       .highlight_style(Style::default().add_modifier(Modifier::BOLD));
 
-    let scrollbar = Scrollbar::default().style(Style::default().fg(Color::Green));
+    let scrollbar = Scrollbar::default().style(Style::default().fg(Color::Rgb(255, 97, 0)));
     let mut scrollbar_state =
       ScrollbarState::new(state.filtered_projects.len()).position(state.selected_project_index);
 

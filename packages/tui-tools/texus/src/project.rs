@@ -1,3 +1,4 @@
+use std::process::Command;
 use serde::Serialize;
 use std::{fs, os::unix::net::UnixStream, path::PathBuf};
 use strum::Display;
@@ -37,6 +38,7 @@ impl Project {
   }
 }
 
+// #[derive(Default)]
 pub struct ProjectManager {
   base_path: PathBuf,
 }
@@ -44,6 +46,24 @@ pub struct ProjectManager {
 impl ProjectManager {
   pub fn new(base_path: PathBuf) -> Self {
     Self { base_path }
+  }
+
+  pub fn default() -> Self {
+    //change this for your RDS
+    // let rds_path = PathBuf::from(format!("/Users/{}/www/frontend/packages/apps", Self::get_developer_name()))
+    let local_path = PathBuf::from(format!("/Users/{}/www/frontend/packages/apps", Self::get_developer_name()));
+    Self {
+      base_path: local_path,
+    }
+  }
+
+  fn get_developer_name() -> String {
+    let output = Command::new("whoami")
+      .output()
+      .expect("Failed to execute command");
+    let username = String::from_utf8(output.stdout).unwrap();
+
+    username.trim().to_string()
   }
 
   fn read_file(path: &PathBuf) -> Option<String> {
@@ -74,6 +94,21 @@ impl ProjectManager {
       .unwrap_or_default();
 
     (dependencies, commands)
+  }
+
+  pub fn start_project(&self, project: Project) {
+    let project_path = self.base_path.join(&project.name);
+    let package_json_path = project_path.join("package.json");
+    if let Some(package_json_content) = Self::read_file(&package_json_path) {
+      let (_, commands) = Self::parse_package_json(&package_json_content);
+      if commands.contains(&"start".to_string()) {
+        let _ = std::process::Command::new("pnpm")
+          .arg("jf")
+          .arg("start")
+          .current_dir(project_path)
+          .spawn();
+      }
+    }
   }
 
   fn discover_projects(&self) -> Vec<Project> {
