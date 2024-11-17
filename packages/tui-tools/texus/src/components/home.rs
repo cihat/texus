@@ -1,5 +1,4 @@
 use color_eyre::Result;
-use std::path::PathBuf;
 
 use ratatui::{
   crossterm::event::{KeyCode, KeyEvent},
@@ -7,7 +6,7 @@ use ratatui::{
   widgets::{Block, Borders},
 };
 use strum::Display;
-use tokio::sync::mpsc::UnboundedSender;
+use tokio::{sync::mpsc::UnboundedSender, time};
 
 use super::{
   logo::Logo, project_detail::ProjectDetail, project_list::ProjectList,
@@ -16,7 +15,7 @@ use super::{
 use crate::{
   action::Action,
   config::Config,
-  project::{Project, ProjectManager},
+  project_manager::{Project, ProjectManager},
 };
 
 #[derive(Default, PartialEq, Display)]

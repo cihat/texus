@@ -2,8 +2,11 @@ use ratatui::{
   prelude::*,
   widgets::{Block, Borders, List, ListItem, Scrollbar, ScrollbarState},
 };
+use crate::project_manager;
 
-use super::home::{AppState, Mode};
+use project_manager::ProjectStatus::{Running};
+
+use super::{home::{AppState, Mode}};
 
 pub struct ProjectList;
 
@@ -19,7 +22,13 @@ impl ProjectList {
       .enumerate()
       .map(|(i, project)| {
         let global_index = start + i;
-        let mut item = ListItem::new(project.name.clone());
+        let mut item = ListItem::new(
+          format!(
+            "{}{}",
+            if project.status == Running { "● " } else { "○ " },
+            project.name
+          )
+        );
         if global_index == state.selected_project_index {
           item = item.style(
             Style::default()

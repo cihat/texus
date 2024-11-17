@@ -40,7 +40,7 @@ impl Project {
 
 // #[derive(Default)]
 pub struct ProjectManager {
-  base_path: PathBuf,
+  pub base_path: PathBuf,
 }
 
 impl ProjectManager {
@@ -70,13 +70,14 @@ impl ProjectManager {
     fs::read_to_string(path).ok()
   }
 
-  fn check_running(webpack_sock_file_path: &PathBuf) -> ProjectStatus {
+  pub fn check_running(webpack_sock_file_path: &PathBuf) -> ProjectStatus {
     if fs::metadata(webpack_sock_file_path).is_ok() {
       if let Ok(stream) = UnixStream::connect(webpack_sock_file_path) {
         drop(stream);
         return ProjectStatus::Running;
       }
     }
+
     ProjectStatus::Idle
   }
 
