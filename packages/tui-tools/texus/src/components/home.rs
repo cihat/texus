@@ -1,3 +1,4 @@
+use std::path::PathBuf;
 use color_eyre::Result;
 
 use ratatui::{
@@ -15,7 +16,7 @@ use super::{
 use crate::{
   action::Action,
   config::Config,
-  projects::{get_projects, Project},
+  project::{Project, ProjectManager},
 };
 
 #[derive(Default, PartialEq, Display)]
@@ -84,7 +85,10 @@ pub struct Home {
 
 impl Home {
   pub fn new() -> Self {
-    let projects = get_projects();
+    let project_manager = ProjectManager::new(PathBuf::from(
+      "/Users/cihatsalik/www/frontend/packages/apps",
+    ));
+    let projects = project_manager.get_projects();
     let filtered_projects = projects.clone();
 
     Self {
@@ -184,21 +188,21 @@ impl Component for Home {
   }
 
   fn draw(&mut self, frame: &mut Frame, area: Rect) -> Result<()> {
-  if !self.state.logo.is_rendered && self.state.projects.len() > 0 {
-        let area = frame.area();
-        let (logo_width, logo_height) = self.state.logo.get_size();
-        if logo_width < area.width && logo_height < area.height {
-            frame.render_widget(
-                &self.state.logo,
-                Rect::new(
-                    area.width / 2 - logo_width / 2,
-                    area.height / 2 - logo_height / 2,
-                    logo_width,
-                    logo_height,
-                ),
-            );
-            self.state.logo.is_rendered = self.state.logo.init_time.elapsed().as_millis() > 500;
-        }
+    if !self.state.logo.is_rendered && self.state.projects.len() > 0 {
+      let area = frame.area();
+      let (logo_width, logo_height) = self.state.logo.get_size();
+      if logo_width < area.width && logo_height < area.height {
+        frame.render_widget(
+          &self.state.logo,
+          Rect::new(
+            area.width / 2 - logo_width / 2,
+            area.height / 2 - logo_height / 2,
+            logo_width,
+            logo_height,
+          ),
+        );
+        self.state.logo.is_rendered = self.state.logo.init_time.elapsed().as_millis() > 500;
+      }
     }
     let rects = Layout::default()
       .direction(Direction::Horizontal)
@@ -213,7 +217,7 @@ impl Component for Home {
       .split(area);
 
     // Define styles for active and inactive borders
-    let active_style = Style::default().fg(Color::Yellow);
+    let active_style = Style::default().fg(Color::Rgb(126, 193, 14));
     let inactive_style = Style::default().fg(Color::White);
 
     // Draw ProjectList
