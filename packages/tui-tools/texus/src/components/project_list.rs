@@ -37,7 +37,6 @@ impl ProjectList {
       .block(
         Block::default()
           .title(Line::from("Frontend Projects").left_aligned())
-          .style(Style::default().fg(Color::White).bg(Color::Black))
           .title_bottom(if state.mode == Mode::Search {
             Line::from(format!("/ {}", state.search_query))
           } else {

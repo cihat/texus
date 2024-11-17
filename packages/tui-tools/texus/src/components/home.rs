@@ -9,8 +9,8 @@ use strum::Display;
 use tokio::sync::mpsc::UnboundedSender;
 
 use super::{
-  project_detail::ProjectDetail, project_list::ProjectList, project_status::ProjectStatus,
-  Component,
+  logo::Logo, project_detail::ProjectDetail, project_list::ProjectList,
+  project_status::ProjectStatus, Component,
 };
 use crate::{
   action::Action,
@@ -42,6 +42,7 @@ pub struct AppState {
   pub mode: Mode,
   pub active_component: ActiveComponent,
   pub detail_scroll: usize,
+  pub logo: Logo,
 }
 
 impl AppState {
@@ -183,6 +184,22 @@ impl Component for Home {
   }
 
   fn draw(&mut self, frame: &mut Frame, area: Rect) -> Result<()> {
+  if !self.state.logo.is_rendered && self.state.projects.len() > 0 {
+        let area = frame.area();
+        let (logo_width, logo_height) = self.state.logo.get_size();
+        if logo_width < area.width && logo_height < area.height {
+            frame.render_widget(
+                &self.state.logo,
+                Rect::new(
+                    area.width / 2 - logo_width / 2,
+                    area.height / 2 - logo_height / 2,
+                    logo_width,
+                    logo_height,
+                ),
+            );
+            self.state.logo.is_rendered = self.state.logo.init_time.elapsed().as_millis() > 500;
+        }
+    }
     let rects = Layout::default()
       .direction(Direction::Horizontal)
       .constraints(

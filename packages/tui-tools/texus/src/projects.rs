@@ -5,10 +5,10 @@ use strum::Display;
 
 #[derive(Default, Serialize, PartialEq, Eq, Clone, Display)]
 pub enum ProjectStatus {
-  #[default]
   Running,
-  // Killing,
-  // Building,
+  #[default]
+  Idle,
+  Building,
 }
 
 #[derive(Default, Serialize, PartialEq, Eq, Clone)]
