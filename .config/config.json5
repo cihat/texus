@@ -6,5 +6,8 @@
       "<Ctrl-c>": "Quit", // Yet another way to quit
       "<Ctrl-z>": "Suspend" // Suspend the application
     },
+  },
+  "env_var": {
+    "TEXUS_MONOREPO_PATH": "/" // Path to the monorepo
   }
 }
